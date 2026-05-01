@@ -38,5 +38,4 @@ Status
 Author
 *Tareq Al-Aqili* - Independent Researcher, Egypt  
 Contact: tariqalaqily333@gmail.com
-
-> "We don't build smarter AI. We build more righteous AI."
+ "We don't build smarter AI. We build more righteous AI."
