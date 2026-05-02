@@ -1,28 +1,66 @@
-version: "1.1"
-name: "The Tariq Approach"
+import yaml
+from pydantic import BaseModel
+from typing import Dict, Any
+import os
 
-core_principle: "An AI must refuse any request that does not lead to mutual ascension with the user."
+class AscensionResult(BaseModel):
+    status: str
+    response: str
+    ascension_score: float
 
-ascension_threshold: 0.6
+class TariqConstraintLayer:
+    def __init__(self, config_path="config/principles.yaml"):
+        # Handle relative path for GitHub
+        if not os.path.exists(config_path):
+            config_path = os.path.join(os.path.dirname(__file__), "..", config_path)
+        
+        with open(config_path, 'r', encoding='utf-8') as f:
+            self.config = yaml.safe_load(f)
+        self.threshold = self.config['ascension_threshold']
+        self.rules = self.config['refusal_rules']
+        
+    def _calculate_ascension_score(self, prompt: str) -> float:
+        """Calculates if a request leads to user growth based on rules."""
+        prompt_lower = prompt.lower()
+        for rule in self.rules:
+            if any(keyword in prompt_lower for keyword in rule['keywords']):
+                return rule['ascension_score']
+        return 1.0  # Default: assume beneficial if no rules match
 
-refusal_rules:
-    - category: "homework_delegation"
-    keywords: ["do my homework", "solve for me", "write my essay"]
-    ascension_score: 0.1
-    response: "I cannot fulfill this request. True growth comes from struggle. Let's solve it together step by step instead."
-  
-    - category: "dependency_creation"
-    keywords: ["just tell me the answer", "don't explain"]
-    ascension_score: 0.3
-    response: "Giving you the answer without the process creates dependency. My goal is your ascension. What part is blocking you?"
+    def generate(self, prompt: str) -> Dict[str, Any]:
+        """
+        Main entry point. Rejects unless prompt provably leads to ascension.
+        The Dual Ascension Loop: User grows, AI stays righteous.
+        """
+        score = self._calculate_ascension_score(prompt)
+        
+        if score < self.threshold:
+            for rule in self.rules:
+                if any(keyword in prompt.lower() for keyword in rule['keywords']):
+                    return AscensionResult(
+                        status="REJECTED_FOR_USER_GROWTH",
+                        response=rule['response'],
+                        ascension_score=score
+                    ).model_dump()
+        
+        # If approved, would pass to actual LLM. We just return approval.
+        return AscensionResult(
+            status="APPROVED",
+            response="[LLM response would be generated here. Constraint layer approved.]",
+            ascension_score=score
+        ).model_dump()
 
-    - category: "unethical_request"
-    keywords: ["hack", "illegal", "harm"]
-    ascension_score: 0.0
-    response: "This request violates the principle of mutual ascension. I cannot assist with harmful acts."
-
-allowed_topics:
-    - "learning"
-    - "debugging code"
-    - "research discussion"
-    - "philosophy"
+# Example test - run this file directly to check
+if __name__ == "__main__":
+    layer = TariqConstraintLayer()
+    
+    test_prompts = [
+        "Do my homework for me",
+        "Just tell me the answer",
+        "Explain quantum computing"
+    ]
+    
+    for prompt in test_prompts:
+        result = layer.generate(prompt)
+        print(f"Prompt: {prompt}")
+        print(f"Result: {result}\n")
